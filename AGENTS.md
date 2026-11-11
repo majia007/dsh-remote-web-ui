@@ -1,10 +1,10 @@
 # AGENTS.md — @jia-tools/dsh-remote-web-ui
 
-给本机 DSH 加一个带独立密码的 Web 入口：插件自己监听一个固定回环端口，自己登录，再把请求反向代理到 DSH 的随机回环端口。
+给本机 DSH 加一个带独立密码的 Web 入口：插件自己监听一个固定回环端口，自己登录，再把请求反向代理到 DSH 的随机回环端口。插件不提供公网访问渠道、自身不经过中转服务器，也没有账号体系；隧道、域名、TLS 与访问控制由部署方自备。
 
 > 原名 `dsh-remote-access`，2026-11-11 改名 `dsh-remote-web-ui`：loader 行 id、设置分区 id、文案命名空间、API 前缀、cookie 名、状态文件与日志文件名一并改；旧 `$DSH_HOME/remote-access.json` 不再读取（旧配置按废弃处理，从默认值起步）。
 
-**权限与作用边界**：只监听一个回环端口、读写 `$DSH_HOME/remote-web-ui.json`、在 Host 的 `webServer` 上注册一条 `/remote-web-ui/api` 前缀路由（供本机设置页调用）。不改 profile 官方行，不碰 `trustedHosts`，不读会话记录。
+**权限与作用边界**：只监听一个回环端口、读写 `$DSH_HOME/remote-web-ui.json`、在 Host 的 `webServer` 上注册一条 `/remote-web-ui/api` 前缀路由（供本机设置页调用），并由插件自己的监听器在插件会话校验后提供同一套 API（供远程浏览器配置）。不改 profile 官方行，不碰 `trustedHosts`，不读会话记录。
 
 ## 为什么不需要 trustedHosts / 启动 token
 
@@ -30,7 +30,7 @@ DSH 的 `/api` 栅栏（`packages/client/connection/src/api-request-trust.ts`）
 | `src/host/login-page.ts` | 自包含登录页 HTML（无外部资源、无内联脚本） |
 | `src/client/index.ts` | 注册 `settings.section` 页面与 `settings.section.icon` 导航图标，以及文案字典 |
 | `src/client/SectionIcon.tsx` | 导航行图标（手写地球 SVG）：不注册该槽位时宿主落回设置齿轮，与「设置」本身同字形 |
-| `src/client/SettingsTab.tsx` | 配置页；只调 `/remote-web-ui/api`，不碰公开监听器。可达地址与「外部地址」共用同一行结构（地址 / 类型标签 / 复制按钮） |
+| `src/client/SettingsTab.tsx` | 配置页；只调当前 origin 的 `/remote-web-ui/api`（本机与远程入口共用同一实现，后者要求插件会话）。可达地址与「外部地址」共用同一行结构（地址 / 类型标签 / 复制按钮） |
 | `build/preset.mjs` | 复刻官方产物契约；CSS 前缀 `dsrw-` |
 
 ## 构建与验证
@@ -72,7 +72,7 @@ listening on http://127.0.0.1:39321
 - 密码用 scrypt（64 字节派生）+ 每密码独立 salt；改密码会换 `secret` 并把 `auth.version` +1，**所有旧会话立即失效**。
 - Cookie 值 `v1.<body>.<hmac>`，`body = {exp, pv}`；`exp` 绝对时间，`pv` 必须等于当前版本。
 - Cookie 属性 `HttpOnly; SameSite=Lax; Path=/`，**刻意不加 `Secure`**：监听器是明文 HTTP，加了会让 HTTP 接入登录后掉线；TLS 由前置代理负责。
-- 登录失败按 `socket.remoteAddress` 计数：默认 5 次/分钟，命中后冷却 60 秒，内存态（重启即清空，避免攻击者用失败填满磁盘）。
+- 登录失败按 `socket.remoteAddress` 计数：默认 5 次/分钟，命中后冷却 60 秒，内存态（重启即清空，避免攻击者用失败填满磁盘）。经前置代理时所有外部客户端看到的都是代理地址，会共享同一份额度。
 
 ## 代理行为
 
@@ -80,7 +80,7 @@ listening on http://127.0.0.1:39321
 - 响应头：删 `set-cookie`（内部 cookie 不外泄）与 hop-by-hop 头；状态码、正文流式透传。
 - WebSocket：`server.on('upgrade')` 独立认证，用 `http.request` 转发升级，101 握手按上游 `rawHeaders` 原样回写（`Sec-WebSocket-Accept` 必须是上游算的），双向 pipe。
 - 内部 cookie 缓存 5 分钟，端口变化即重取；DSH Host 重启后端口变，第一次请求会自动换新的。
-- `/remote-web-ui*` 在公开监听器上一律 404，绝不转发。
+- `/remote-web-ui/api*` 由插件在公开监听器上就地处理（要求插件会话），**不转发给上游 DSH**；其余 `/remote-web-ui/*` 按普通路径代理，由上游自行响应。
 
 ## 坑
 
