@@ -1,0 +1,15 @@
+# Host half: an independent HTTP listener in front of the local DSH Web UI.
+# It owns its own login (password -> signed session cookie), rewrites the
+# request authority to the loopback Host and injects that Host's browser
+# cookie, so no `trustedHosts` entry and no profile change is needed.
+#
+# The listener target is whatever forwards to it (frp, cloudflared, a router
+# port forward); this package never assumes a tunnel vendor or TLS terminator.
+- insert:
+    # 行 id 不能叫 remote-access：那是官方 base bundle 的行 id
+    # (@deepseek-ai/dsh-api-remote-access，提供 ctx.remoteAccess 服务)；
+    # 同名 insert 会顶掉官方行，api-gateway 等核心条目永远 pending，
+    # /api/settings/describe 404，桌面 welcome 起不来(2026-11-11 实证)。
+    # 现用 remote-web-ui：包名去 dsh- 前缀，base bundle 里没有同名行。
+    - id: remote-web-ui
+      name: ./lib/index.js

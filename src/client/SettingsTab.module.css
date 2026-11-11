@@ -1,0 +1,417 @@
+/*
+ * 远程访问设置页样式。只引用宿主设计 token（--dsw-*），兜底用 CSS 系统色；
+ * 字号走共享的四档变量，随设置里的界面字号缩放。
+ */
+body {
+  --dsh-plugin-font-boost: max(0px, calc(var(--dsh-content-font-size, 14px) - 15px));
+  --dsh-plugin-fs-11: min(var(--dsh-content-font-size, 14px), calc(11px + var(--dsh-plugin-font-boost)));
+  --dsh-plugin-fs-12: min(var(--dsh-content-font-size, 14px), calc(12px + var(--dsh-plugin-font-boost)));
+  --dsh-plugin-fs-13: min(var(--dsh-content-font-size, 14px), calc(13px + var(--dsh-plugin-font-boost)));
+  --dsh-plugin-fs-14: min(var(--dsh-content-font-size, 14px), calc(14px + var(--dsh-plugin-font-boost)));
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 640px;
+  padding: 4px 0 24px;
+  color: var(--dsw-alias-label-primary, CanvasText);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: calc(16px + var(--dsh-plugin-font-boost, 0px));
+  line-height: calc(22px + var(--dsh-plugin-font-boost, 0px));
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  line-height: calc(18px + var(--dsh-plugin-font-boost, 0px));
+  color: var(--dsw-alias-label-tertiary, GrayText);
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--dsw-radius-md, 8px);
+  background: var(--dsw-alias-bg-layer-1, color-mix(in srgb, CanvasText 4%, Canvas));
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--dsh-plugin-fs-13, 13px);
+  font-weight: 500;
+}
+
+.statusMeta {
+  margin-left: auto;
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  color: var(--dsw-alias-label-tertiary, GrayText);
+  font-variant-numeric: tabular-nums;
+}
+
+.dotOn,
+.dotOff {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  corner-shape: round;
+  flex: none;
+}
+
+.dotOn {
+  background: var(--dsw-alias-state-success-primary, #2e9e5b);
+}
+
+.dotOff {
+  background: var(--dsw-alias-label-tertiary, GrayText);
+}
+
+.statusError {
+  margin: 0;
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  line-height: calc(18px + var(--dsh-plugin-font-boost, 0px));
+  color: var(--dsw-alias-state-error-primary, #d9534f);
+}
+
+.statusWarn {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #dd8629) 12%, transparent);
+  color: var(--dsw-alias-state-warn-label, #dd8629);
+  font-size: var(--dsh-plugin-fs-12, 12px);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 14%, transparent));
+  border-radius: var(--dsw-radius-lg, 12px);
+  background: var(--dsw-alias-bg-layer-1, Canvas);
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--dsh-plugin-fs-14, 14px);
+  line-height: calc(20px + var(--dsh-plugin-font-boost, 0px));
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  color: var(--dsw-alias-label-secondary, GrayText);
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  border: 1px solid var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 18%, transparent));
+  background: var(--dsw-alias-bg-layer-1, Canvas);
+  color: inherit;
+  font: inherit;
+  font-size: var(--dsh-plugin-fs-14, 14px);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, AccentColor);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  line-height: calc(18px + var(--dsh-plugin-font-boost, 0px));
+  color: var(--dsw-alias-label-tertiary, GrayText);
+}
+
+.primary,
+.secondary {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  font: inherit;
+  font-size: var(--dsh-plugin-fs-13, 13px);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.primary {
+  border: 0;
+  background: var(--dsw-alias-brand-primary, AccentColor);
+  color: var(--dsw-alias-label-primary-foreground, AccentColorText);
+}
+
+.secondary {
+  border: 1px solid var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 18%, transparent));
+  background: transparent;
+  color: inherit;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, AccentColor);
+  outline-offset: 1px;
+}
+
+.badgeOn,
+.badgeOff {
+  padding: 1px 8px;
+  border-radius: 999px;
+  corner-shape: round;
+  font-size: var(--dsh-plugin-fs-11, 11px);
+  line-height: calc(16px + var(--dsh-plugin-font-boost, 0px));
+}
+
+.badgeOn {
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2e9e5b) 14%, transparent);
+  color: var(--dsw-alias-state-success-label, #2e9e5b);
+}
+
+.badgeOff {
+  background: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 8%, Canvas));
+  color: var(--dsw-alias-label-tertiary, GrayText);
+}
+
+.noticeOk,
+.noticeError {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  font-size: var(--dsh-plugin-fs-12, 12px);
+}
+
+.noticeOk {
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #2e9e5b) 12%, transparent);
+  color: var(--dsw-alias-state-success-label, #2e9e5b);
+}
+
+.noticeError {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d9534f) 12%, transparent);
+  color: var(--dsw-alias-state-error-primary, #d9534f);
+}
+
+.passwordRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.passwordRow .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.eye {
+  flex: none;
+  padding: 0 12px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  border: 1px solid var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 18%, transparent));
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, GrayText);
+  font: inherit;
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  cursor: pointer;
+}
+
+.eye:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, AccentColor);
+  outline-offset: 1px;
+}
+
+/* 服务开关：胶囊轨道 + 圆形滑块。全圆角必须显式退出 superellipse。 */
+.switch {
+  margin-left: auto;
+  flex: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 14%, Canvas));
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.switch[aria-checked='true'] {
+  background: var(--dsw-alias-brand-primary, AccentColor);
+}
+
+.switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, AccentColor);
+  outline-offset: 2px;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground, Canvas);
+  transition: transform 120ms ease;
+}
+
+.switch[aria-checked='true'] .switchKnob {
+  transform: translateX(16px);
+}
+
+.addresses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.addressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.addressUrl {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--dsw-font-family-mono, ui-monospace, Consolas, monospace);
+  font-size: var(--dsh-plugin-fs-11, 11px);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.addressKind {
+  flex: none;
+  font-size: var(--dsh-plugin-fs-11, 11px);
+  color: var(--dsw-alias-label-tertiary, GrayText);
+}
+
+.copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, GrayText);
+  cursor: pointer;
+}
+
+.copy:hover {
+  background: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 8%, Canvas));
+  color: var(--dsw-alias-label-primary, CanvasText);
+}
+
+.copy:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, AccentColor);
+  outline-offset: 1px;
+}
+
+.copied {
+  font-size: var(--dsh-plugin-fs-11, 11px);
+  color: var(--dsw-alias-state-success-label, #2e9e5b);
+}
+
+.hostList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 14%, transparent));
+  border-radius: var(--dsw-radius-sm, 6px);
+}
+
+.hostOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 2px 4px;
+  border-radius: var(--dsw-radius-xs, 4px);
+  cursor: pointer;
+  font-size: var(--dsh-plugin-fs-13, 13px);
+}
+
+.hostOption:hover {
+  background: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 6%, Canvas));
+}
+
+.hostOption input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--dsw-alias-brand-primary, AccentColor);
+}
+
+.hostOptionMuted {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hostLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hostValue {
+  flex: none;
+  font-family: var(--dsw-font-family-mono, ui-monospace, Consolas, monospace);
+  font-size: var(--dsh-plugin-fs-11, 11px);
+  color: var(--dsw-alias-label-tertiary, GrayText);
+}

@@ -1,0 +1,6 @@
+node_modules/
+# 构建产物不入 git：需要时自己 pnpm build（测试/harness 加载的就是它）
+lib/
+.idea/
+.zcode/
+scripts/out/
