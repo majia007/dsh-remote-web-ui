@@ -47,8 +47,10 @@ pnpm test
 
 ## 装载与热重载
 
-- 安装：`plugin_manager` 的 `install_bundle` 指向本目录，返回 `application: applied` 只代表 profile 文件更新。
-- ⚠️ **新增的 Loader 行必须重启桌面端才会装载**。实测 `install_bundle` 后 `list_plugins` 显示 `include:remote-web-ui` 为 `active`，但 `cordis_inspect_query` 的 `Config.listConfigs` 返回 `unknown entry id "remote-web-ui"`，且 `apply` 无任何副作用（无日志、无路由、端口未监听）——那个 `active` 是 plugin_manager 的静态清单，不是运行时 fiber。`set_bundle` 的 false→true 同样只改文件。判据用 `apply` 的副作用（诊断日志 + `/remote-web-ui/api` 是否 401 而非 404），不要用 `fiberPhase`。
+- 安装：`plugin_manager` 的 `install_bundle` 指向本目录；返回 `application: applied` 即 profile 文件更新 + 运行期装载。
+- ⚠️ **判据用 `apply` 的副作用，不要用 `fiberPhase`**：`list_plugins` 的 `fiberPhase` 来自静态清单，历史上出现过显示 active 但 `apply` 没执行的情况。判据是诊断日志 + `/remote-web-ui/api` 的状态码（401/200 都算路由在，404 才是没注册）+ 设置页分区是否渲染。
+- 2026-11-11 实测（改名为 `dsh-remote-web-ui` 后首次安装）：`install_bundle` 返回 `application: applied` 后约 1 秒内 `apply` 就跑完——`$DSH_HOME/remote-web-ui.log` 依次 `apply entered` → `services resolved` → `start requested` → `disabled: not listening`，`/remote-web-ui/api` 直接探到 401，设置页导航出现「远程访问」，**无需重启桌面**。旧结论「新增 Loader 行必须重启才装载」至少在本次安装路径下不成立；冷启动仍以 web-boot 门禁为准。
+- ⚠️ 装新包/改名后，页面里会**同时存在新旧两个设置分区**：旧 bundle 的 client entry 在页面存活期间不会卸载，其 API 前缀已失效会显示 `读取配置失败：HTTP 404`。桌面重启后旧的就没了，不要据此判断新包没生效（按 CSS 类名前缀 `dsrw-` / 是否报 404 区分两个分区）。
 - client bundle 由桌面自带 HMR 在 build 后自动重挂，不要刷新页面。
 
 ## 诊断
@@ -63,7 +65,7 @@ binding http://127.0.0.1:39321
 listening on http://127.0.0.1:39321
 ```
 
-只看到前两行说明 `webServer` / `connection` 没就绪；看到 `binding` 没有 `listening` 说明端口绑定失败（错误原文在下一行）。
+只看到前两行说明 `webServer` / `connection` 没就绪；看到 `binding` 没有 `listening` 说明端口绑定失败（错误原文在下一行）。开关关闭时第四行是 `disabled: not listening`（默认状态，不是故障）。
 
 ## 认证与会话
 
@@ -90,7 +92,7 @@ listening on http://127.0.0.1:39321
 > ⚠️ **`list_plugins` 的 `fiberPhase` 不等于 `apply` 已执行**
 > 症状：新装的 insert 行显示 active，但插件没有任何副作用。
 > 根因：该字段来自静态清单；新行尚未进入 loader 组合。
-> 正解：以 `Config.listConfigs` 能否找到 entry、以及 `apply` 的副作用为准；新行必须重启桌面端。
+> 正解：以 `Config.listConfigs` 能否找到 entry、以及 `apply` 的副作用为准。2026-11-11 复测：`install_bundle` 后新行即时装载（`apply` 已跑），不再依赖重启。
 
 > ⚠️ **测试直读 `src/` 时不能用构造函数参数属性**
 > 症状：`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX: TypeScript parameter property is not supported in strip-only mode`。
