@@ -1,6 +1,6 @@
 {
   "name": "@jia-tools/dsh-remote-web-ui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Password-protected entry to the local DSH Web UI: an independent reverse proxy with its own login, no relay server or account system, usable behind any tunnel or port forwarder",
   "keywords": [
     "dsh",
