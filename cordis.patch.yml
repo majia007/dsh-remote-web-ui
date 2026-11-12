@@ -13,3 +13,37 @@
     # 现用 remote-web-ui：包名去 dsh- 前缀，base bundle 里没有同名行。
     - id: remote-web-ui
       name: ./lib/index.js
+
+# 远端创建工作区：冷启动时把宿主的目录选择器从 native 换成 browse。
+#
+# 宿主 `directory-picker` 行（@deepseek-ai/dsh-host-directory-picker-auto）
+# 在每次启动时按环境二选一（packages/host/directory-picker-auto/src/resolve.ts:55）：
+# 只有「非回环绑定 / 配置了 trustedHosts / 非 SSH 启动 / 有可用显示」才选
+# browse，桌面部署（本机 Windows 回环、无 trustedHosts）一律是 native。
+# native 的对话框开在 Host 的桌面上（client 侧 pick 走
+# __DSH_DIRECTORY_PICKER__ 桌面 bridge 或经 RPC 落到 Host 的 OS chooser），
+# 远端浏览器既看不见也点不到——这就是「远端没法创建工作区」的根因。
+#
+# 本插件在代理这一跳把 Host 改写成回环、注入内部 cookie，远端页面因此被
+# 当作 owner，native 交互照样注册，问题更彻底地暴露出来。
+#
+# 正解是 pin browse 交互（宿主 auto 的注释自己写了「mount -native or -browse
+# directly in an overlay」）：browse 后端的 list/createDirectory 与浏览对话框
+# 都在页面里，浏览的是 Host 文件系统，本机与远端一致，返回的路径就是 Host 路径。
+#
+# ⚠️ browse 的两行**不能**写进这里的 insert：运行期启用插件时
+# （plugin-manager 的 bundleRows 只发布本 bundle 的 insert 行，
+# packages/boot/plugin-manager/src/index.ts:1195）本条的 disabled 覆盖不会重放，
+# auto 行仍在运行；静态 insert 的 browse 后端行会与它的 NativeDirectoryPicker
+# 撞 `service "directoryPicker" has been registered`（2026-11-12 真机：启用失败，
+# 1 entry did not activate）。两行统一由 Host 侧 `src/host/directory-picker.ts`
+# 在 apply 里装载：运行时先停掉已激活的 auto 行，再 create browse 后端 + 表面。
+#
+# 这里保留 disabled 覆盖，负责冷启动路径（全量组合时生效）。卸载插件即撤销
+# 这一层，宿主回到 auto 解析。用户 profile 的 cordis.patch.yml 仍可再覆盖本层。
+#
+# 待复核锚点（宿主升级后）：行 id `directory-picker`、browse 两个包名
+# （packages/host/directory-picker-auto/src/index.ts 的 BACKEND_PACKAGES/
+# SURFACE_PACKAGES）、DirectoryPicker 服务一次性注册。
+- id: directory-picker
+  disabled: true

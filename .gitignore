@@ -4,3 +4,6 @@ lib/
 .idea/
 .zcode/
 scripts/out/
+# JVM 崩溃残留日志（本机诊断产物）
+hs_err_pid*.log
+replay_pid*.log

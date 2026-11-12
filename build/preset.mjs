@@ -107,7 +107,9 @@ const CSS_REGISTRY_ID = '\0dsh-css-registry.mjs'
  * 漏登记构建直接报错,而不是静默注入乱序或无样式。
  */
 const CSS_SHEET_ORDER = [
+  // 字体变量（body 上的 --dsh-plugin-fs-*）在第一个表里定义，后面的表引用它。
   'SettingsTab.module.css',
+  'CreateWorkspace.module.css',
 ]
 
 /** 扫描 src/client 下实际存在的 *.module.css(POSIX 相对路径,目录递归)。 */

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Remote access",
+    "description": "Password-protected entry to the local DSH Web UI: an independent reverse proxy on a fixed loopback port with its own login, no relay server or account system."
+  }
+}

@@ -42,6 +42,9 @@ export const zh = {
   hidePassword: '隐藏',
   loadFailed: '读取配置失败：{error}',
   requestFailed: '请求失败：{error}',
+  createLabel: '选择文件夹…',
+  createBusy: '选择中…',
+  createTitle: '用系统目录框选择文件夹，创建并切换工作区（仅 DSH 桌面客户端）',
 } as const
 
 /** English. */
@@ -83,6 +86,9 @@ export const en = {
   hidePassword: 'Hide',
   loadFailed: 'Could not read settings: {error}',
   requestFailed: 'Request failed: {error}',
+  createLabel: 'Choose folder…',
+  createBusy: 'Choosing…',
+  createTitle: 'Pick a folder with the system dialog, then create and open that workspace (DSH desktop client only)',
 } as const
 
 /** Locale namespace owned by this plugin. */

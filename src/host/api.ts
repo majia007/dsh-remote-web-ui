@@ -11,11 +11,29 @@
  */
 import { networkInterfaces } from 'node:os'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { API_PREFIX } from '../shared.ts'
+import { pickWindowsDirectory, type NativePickResult } from './native-pick.ts'
 import type { RemoteAccessServer, RemoteStatus } from './server.ts'
 
 /** Absolute path of the settings API on both mounts. */
-export const API_PREFIX = '/remote-web-ui/api'
+export { API_PREFIX }
 const MAX_JSON_BYTES = 64 * 1024
+
+/**
+ * Which mount is serving this request. The settings API is mounted twice:
+ * the DSH Host listener (same machine, behind the connection fence) and the
+ * plugin's own listener (a remote browser behind the plugin session).
+ */
+export interface ApiMount {
+  /**
+   * The Windows system chooser belongs to the machine's display, not to a
+   * remote browser: only the Host mount offers it (the remote mount answers
+   * 404 so a stale or hand-made request cannot pop a dialog on the host).
+   */
+  readonly nativePick: boolean
+  /** Chooser implementation; tests replace it. */
+  readonly pickDirectory?: () => Promise<NativePickResult>
+}
 
 /** One selectable listen address. */
 export interface HostOption {
@@ -184,6 +202,7 @@ export async function handleApi(
   server: RemoteAccessServer,
   request: IncomingMessage,
   response: ServerResponse,
+  mount: ApiMount = { nativePick: false },
 ): Promise<void> {
   const url = new URL(request.url ?? '/', 'http://127.0.0.1')
   const path = url.pathname.slice(API_PREFIX.length) || '/'
@@ -212,6 +231,21 @@ export async function handleApi(
       const result = await server.setPassword(asString(body.next) ?? '')
       if (!result.ok) writeJson(response, 400, { ok: false, error: result.error })
       else writeJson(response, 200, { ok: true, ...stateView(server) })
+      return
+    }
+    if (request.method === 'POST' && path === '/pick-directory') {
+      if (!mount.nativePick) {
+        // 公开监听器上没有这个能力：对话框属于 Host 的屏幕，远端调用没有意义。
+        writeJson(response, 404, { error: 'not found' })
+        return
+      }
+      if (!requireJson(request)) { writeJson(response, 415, { error: 'content-type must be application/json' }); return }
+      try {
+        const result = await (mount.pickDirectory ?? (() => pickWindowsDirectory()))()
+        writeJson(response, 200, { ok: true, path: result.path })
+      } catch (error) {
+        writeJson(response, 501, { ok: false, error: error instanceof Error ? error.message : String(error) })
+      }
       return
     }
     writeJson(response, 404, { error: 'not found' })

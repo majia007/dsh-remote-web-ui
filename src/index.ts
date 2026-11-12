@@ -17,6 +17,7 @@ import { appendFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { API_PREFIX, handleApi, writeJson } from './host/api.ts'
+import { installBrowseDirectoryPicker } from './host/directory-picker.ts'
 import { RemoteAccessServer } from './host/server.ts'
 
 /** Diagnostic sink: Host stdout is owned by Electron, so a file is the only observable channel. */
@@ -60,11 +61,35 @@ export function apply(ctx: Context): void {
             writeJson(response, rejection, { error: rejection === 401 ? 'unauthorized' : 'forbidden' })
             return
           }
-          await handleApi(server, request, response)
+          await handleApi(server, request, response, { nativePick: true })
         })()
       },
     }), 'remote-web-ui: settings API')
 
     scoped.effect(() => () => { void server.stop() }, 'remote-web-ui: listener')
+
+    // 目录选择器：宿主在桌面部署里固定用 native（对话框只在 Host 屏幕上），
+    // 远端浏览器无法使用；换成 browse 交互（页面内浏览 Host 目录）。
+    // 失败只记日志：装不上目录选择器不该拖垮远程入口本身。
+    scoped.effect(() => {
+      let disposed = false
+      let cleanup: (() => Promise<void>) | undefined
+      void (async () => {
+        try {
+          const unmount = await installBrowseDirectoryPicker(scoped)
+          if (disposed) {
+            await unmount()
+            return
+          }
+          cleanup = unmount
+        } catch (error) {
+          log(`directory picker: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      })()
+      return () => {
+        disposed = true
+        void cleanup?.()
+      }
+    }, 'remote-web-ui: directory picker')
   })
 }

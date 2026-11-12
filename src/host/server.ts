@@ -312,7 +312,7 @@ export class RemoteAccessServer {
           this.text(response, 401, 'unauthorized')
           return
         }
-        await handleApi(this, request, response)
+        await handleApi(this, request, response, { nativePick: false })
         return
       }
       if (url.pathname === LOGIN_PATH) {

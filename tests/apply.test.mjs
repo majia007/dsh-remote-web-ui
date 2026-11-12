@@ -34,6 +34,7 @@ async function boot(state, port) {
   const routes = []
   const ctx = {
     inject(_names, callback) { callback(ctx) },
+    get() { return undefined },
     effect(execute) {
       const result = execute()
       const dispose = typeof result === 'function' ? result : () => {}

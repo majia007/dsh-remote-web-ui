@@ -1,0 +1,87 @@
+/*
+ * 「选择文件夹…」入口。字号走 SettingsTab.module.css 定义在 body 上的共享
+ * 四档变量（同一 bundle 一起注入），颜色只引用宿主 token + CSS 系统色兜底。
+ */
+
+/* 新会话行有四个来源，分属两层容器：工作区 chip 与模式选择器（agentPreset）是
+ * .heroWorkspaceRow 的直接子项，插件选项则被宿主包进 .heroOptions（flex +
+ * margin-left:auto，推到行尾）。要把本入口排成「chip → 本入口 → 模式选择器 →
+ * 其它插件选项」，只能在行这一层比较 order；而 .heroOptions 是一个盒子，盒内
+ * 的 order 出不了盒，拉 left 或用 order 排它，都会让盒里同槽的其它条目（当前是
+ * 上下文档位的 chip）整块跟着走。
+ * 所以把它摊平成 display:contents：该 div 没有自己的视觉（无边框/内距/底色，
+ * 唯一的 gap 2px 与行一致），子项自此直接参与行内 flex 排布，再按 order 分三段。
+ * 副作用：同槽其它插件的条目落到模式选择器之后——这正是宿主原本的相对顺序
+ * （宿主里 agentPreset 本来就渲染在 heroOptions 之前），条目之间的先后不变。 */
+div:has(> [data-slot="conversation.hero.options"]) {
+  display: contents;
+}
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  order: 1;
+}
+
+[data-slot="conversation.hero.agentPreset"] > * {
+  order: 2;
+}
+
+[data-slot="conversation.hero.options"] > :not(.wrap) {
+  order: 3;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, GrayText);
+  font-family: inherit;
+  font-size: var(--dsh-plugin-fs-13, 13px);
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 8%, transparent));
+  color: var(--dsw-alias-label-primary, CanvasText);
+}
+
+/* 图标与工作区 chip 的文件夹同色同粗细（宿主该图标是 regular 1px）：
+ * 文字可以比 chip 淡一档（label-secondary），但图标跟着文字一起变淡会显得
+ * 又细又小，所以单独用主文本色，且不参与 flex 压缩。 */
+.button > svg {
+  flex: none;
+  color: var(--dsw-alias-label-primary, CanvasText);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-state-error-primary, CanvasText);
+  font-size: var(--dsh-plugin-fs-12, 12px);
+  line-height: 18px;
+}
