@@ -20,11 +20,12 @@ DSH 的 `/api` 栅栏（`packages/client/connection/src/api-request-trust.ts`）
 
 | 文件 | 职责 |
 |---|---|
-| `src/index.ts` | Host 入口：`ctx.inject(['webServer','connection'])` 后起监听、注册 `/remote-web-ui/api`、写诊断日志 |
+| `src/index.ts` | Host 入口：`ctx.inject(['webServer','connection'])` 后起监听、注册 `/remote-web-ui/api`、装载 browse 目录选择器、写诊断日志 |
 | `src/host/server.ts` | 监听器本体：登录页/登录/登出、会话 cookie、限速、代理调度 |
 | `src/host/auth.ts` | scrypt 密码哈希、HMAC 会话签名、按 IP 的失败窗口 |
 | `src/host/proxy.ts` | HTTP 与 WebSocket upgrade 的反向代理；头改写规则在这里 |
 | `src/host/state.ts` | `$DSH_HOME/remote-web-ui.json` 的读写与归一化 |
+| `src/host/api.ts` | 设置 API 的双挂载共用实现（本机 webServer 面 + 插件监听器面，仅 `nativePick` 挂载面不同）与可达地址枚举 |
 | `src/host/login-page.ts` | 自包含登录页 HTML（无外部资源、无内联脚本） |
 | `src/client/index.ts` | 注册 `settings.section` 页面与 `settings.section.icon` 导航图标，以及文案字典 |
 | `src/client/SectionIcon.tsx` | 导航行图标（手写地球 SVG）：不注册该槽位时宿主落回设置齿轮，与「设置」本身同字形 |
@@ -185,6 +186,17 @@ body {
 ## 约定
 
 - 全文中文；代码标识符英文。
+- 代码注释写「职责与设计为什么」与单点约束、被否决的方案；不写逐行翻译与过程记录。过时注释比没有更糟，读到与代码矛盾的注释当场以代码为准修/删。
 - 包名 `dsh-` + kebab-case；行 id 是包名去掉 `dsh-` 前缀，即 `remote-web-ui`。**不能叫 `remote-access`**：官方 base bundle 已占该行（提供 `ctx.remoteAccess` 服务），同名 insert 会顶掉它，见坑。
 - 不导出 `Config`：Host 侧保持零宿主依赖，配置由插件自己的数据文件 + 设置页 API 承担。想改成 settings 表单就得引入 schemastery 的 vendor 构建，得不偿失。
 - 文档与代码冲突时以代码为准。
+
+## 本文档维护规则
+
+- **核心判据**：只记代码、git log、README 里读不出的东西（设计为什么、坑、硬约束、装载判据）。过时的文档比没有更糟，读到与代码矛盾的断言当场以代码为准修；删留只看记/不记判据，长度不是标尺。
+- **记**：设计决策的「为什么」（含被否决方案，如 browse 行不静态 insert、侧栏不加本机入口）、回归坑（症状→根因→正解+验证指针）、与宿主 patch/loader 的契约（directory-picker 行 id 与 browse 包名）、不可复现资源（checkout 路径、诊断日志位置）。**不记**：方法名/行号（checkout 的包路径可以）、数值与超时（归代码常量 + 定义处注释）、流水账与 git log 可查元数据。
+- **维护决策**：加/删功能、行为变化 → 关键文件表与对应机制节，行为变化同步 README；修 bug/发现新坑 → 坑库补条目，坑被修复消化 → 删条目不留「已修」；改依赖/构建/装载 → 构建与验证、装载与热重载；纯重构不更新（仅修失效锚点）；读到文档与代码矛盾 → 当场修；拿不准 → 先核实（代码、宿主 checkout、问用户）。
+- **坑条目格式**：一句话断言根因（高发项用 ⚠️ 块），下写「症状 → 根因 → 正解（+验证指针）」。
+- **锚点三性**：新锚点必须可 grep、唯一、稳定，写入前先验证。
+- **质量自检**：新会话 5 分钟测试——只读本文 + README 能完成构建与安装、找到改动落点、说出三个危险区（行 id 勿撞官方 `remote-access` / browse 行不进静态 patch / 代理层 `Origin` 删而不改）、知道怎么验证（诊断日志 + 路由状态码，不用 `fiberPhase`）；抽查 3 个反引号锚点可 grep 命中。
+- **代码注释规范**：「约定」节的注释规范是本规则的组成部分，维护文档时同步更新，不得丢失或削弱。
