@@ -25,7 +25,7 @@ dsh plugin --profile <profile> add @jia-tools/dsh-remote-web-ui
 
 桌面端 / Web 在「插件」页搜索 `@jia-tools/dsh-remote-web-ui` 安装。
 
-本地源码安装（开发）：`dsh plugin --profile <profile> add <本目录>`；改代码后 `pnpm build`，Host 侧改动需 disable → enable 或重启宿主，client bundle 由桌面自带 HMR 在 build 后自动重挂。**改 `cordis.patch.yml` 后必须重启宿主或重新装载本插件**：bundle patch 只在组合装载时读取。
+本地源码安装（开发）：`dsh plugin --profile <profile> add <本目录>`；改代码后 `pnpm build`，Host 侧改动需 `set_plugin` 关→开（`enabled:false` 再 `true`）或重启宿主，client bundle 由桌面自带 HMR 在 build 后自动重挂。**改 `cordis.patch.yml` 后必须重启宿主或重新装载本插件**：bundle patch 只在组合装载时读取。
 
 ## 它做什么
 
@@ -47,7 +47,7 @@ dsh plugin --profile <profile> add @jia-tools/dsh-remote-web-ui
 - 远端和本机桌面都会看到同一个「选择工作区目录」对话框，可以浏览主机磁盘、新建文件夹，选中后返回的就是主机上的路径；
 - 代价是本机也不再弹 Windows/macOS 的原生目录框——这是「远端可用优先」的取舍，卸载插件即恢复宿主默认行为；
 - 该切换在插件装载时完成：装好后需要让 DSH 重启一次（或重新启用本插件），改动才会进入运行中的组合；
-- 在插件管理页「禁用 → 启用」之后，Host 侧已经切好，但**当前页面里已装载的旧目录框仍在**，请刷新页面或重启桌面再看效果。
+- 在插件管理页「关→开」之后，Host 侧已经切好，但**当前页面里已装载的旧目录框仍在**，请刷新页面或重启桌面再看效果。
 
 ### 桌面客户端快捷入口
 
@@ -148,7 +148,7 @@ pnpm test       # tests/**（服务端行为、登录、代理、apply harness�
 pnpm typecheck  # tsc --noEmit
 ```
 
-改动 Host 侧后需要 disable → enable（或重启桌面端）才会装载新产物；client bundle 由桌面自带的 HMR 在 build 后自动重挂。
+改动 Host 侧后需要 `set_plugin` 关→开（`enabled:false` 再 `true`，或重启桌面端）才会装载新产物；client bundle 由桌面自带的 HMR 在 build 后自动重挂。
 
 ## 许可
 

@@ -96,13 +96,13 @@ listening on http://127.0.0.1:39321
 正解是把交互换成 browse，分两半实现（**不能把 browse 行静态 insert 进 bundle patch**，原因见下）：
 
 - `cordis.patch.yml` 的 `- id: directory-picker` + `disabled: true`：冷启动（全量组合）时禁掉 auto 行。patch 层按 `dsh.profile.bundles` 顺序叠加（`packages/boot/app-boot/src/profile.ts`），本包排在 `@deepseek-ai/dsh-web-app` 之后；`applyPatches` 对非 insert 条目按 id 覆盖（`vendor/include/src/patch.ts`）。卸载插件即撤销这一层。
-- `src/host/directory-picker.ts` 的 `installBrowseDirectoryPicker`：apply 时装载 `@deepseek-ai/dsh-host-directory-picker-browse`（`ctx.directoryPicker` 的 browse capability：`list` / `createDirectory`）与 `@deepseek-ai/dsh-client-ui-directory-picker-browse`（页面里的「选择工作区目录」对话框，占 `conversation.hero.workspace.directoryFlow` 与 `sidebar.workspaces.directoryFlow` 两个 single 槽）。**装载前先看 `loader.store['directory-picker']` 有没有 fiber**：运行期「禁用 → 启用」不重放 patch 的 `disabled` 覆盖（plugin-manager 的 `bundleRows` 只发布本 bundle 的 insert 行，`packages/boot/plugin-manager/src/index.ts`），auto 行仍激活且已注册 native 后端；先 `fiber.dispose()` 再 create browse，否则撞 `service "directoryPicker" has been registered at <NativeDirectoryPicker>`（真机报错原文：`启用失败：1 entry did not activate remote-web-ui-directory-picker ...`）。
+- `src/host/directory-picker.ts` 的 `installBrowseDirectoryPicker`：apply 时装载 `@deepseek-ai/dsh-host-directory-picker-browse`（`ctx.directoryPicker` 的 browse capability：`list` / `createDirectory`）与 `@deepseek-ai/dsh-client-ui-directory-picker-browse`（页面里的「选择工作区目录」对话框，占 `conversation.hero.workspace.directoryFlow` 与 `sidebar.workspaces.directoryFlow` 两个 single 槽）。**装载前先看 `loader.store['directory-picker']` 有没有 fiber**：运行期「关→开」不重放 patch 的 `disabled` 覆盖（plugin-manager 的 `bundleRows` 只发布本 bundle 的 insert 行，`packages/boot/plugin-manager/src/index.ts`），auto 行仍激活且已注册 native 后端；先 `fiber.dispose()` 再 create browse，否则撞 `service "directoryPicker" has been registered at <NativeDirectoryPicker>`（真机报错原文：`启用失败：1 entry did not activate remote-web-ui-directory-picker ...`）。
 
 为什么 browse 行不能静态 insert：静态 insert 在运行期启用时会被立即装载，而同一 patch 文件的 `disabled` 覆盖不重放 → native 后端还在 → 服务重名、整个启用失败。把它交给 Host apply 后，两条路径都能按「先停 native 再装 browse」排序。
 
 browse 的浏览与新建都在页面里，读写的仍是 **Host 文件系统**，返回的路径直接就是 Host 路径；本机桌面窗口也用同一对话框（方案取舍：远端可用优先，代价是本机不弹 Windows 原生框）。
 
-验证口径：冷启动后本机与远端都应看到「选择工作区目录」对话框、`POST /api/directoryPicker/list` 能列出 Host 目录。运行期「禁用 → 启用」只保证 Host 侧切换成功（`$DSH_HOME/remote-web-ui.log` 里没有 `directory picker: ...`）；**页面里已装载的 native client entry 不会卸载**，当前页仍需刷新、或重启桌面后才看得到新对话框——这是 client bundle 的宿主限制，不是本插件的状态丢失。
+验证口径：冷启动后本机与远端都应看到「选择工作区目录」对话框、`POST /api/directoryPicker/list` 能列出 Host 目录。运行期「关→开」只保证 Host 侧切换成功（`$DSH_HOME/remote-web-ui.log` 里没有 `directory picker: ...`）；**页面里已装载的 native client entry 不会卸载**，当前页仍需刷新、或重启桌面后才看得到新对话框——这是 client bundle 的宿主限制，不是本插件的状态丢失。
 
 验证：loader 的 `applyPatches` 先叠 web-app patch 再叠本包 patch，本包把 `directory-picker` 的 `disabled` 覆盖成 `true`（`tests/patch.test.mjs` 守 patch 形态，`tests/directory-picker.test.mjs` 守装载/卸载顺序与部分失败清理）。**静态 insert browse 行会撞服务**有真机报错截图佐证，不是推断。
 
@@ -145,7 +145,7 @@ body {
 
 ## client bundle 与模块表（本地副本）
 
-`require` 三层 = 平台种子表 `PLATFORM_MODULES`（11 项，所有 bundle 共享，require 第一跳命中，与 `dsh.client` 声明无关）→ graph 行（声明 `dsh.client` + `exports["./client"]` 的包；要稳定 require 别的包就列进 `dsh.client.external`，未到达抛 `missed the module table`）→ 包内 `require.async` 局部 chunk。`dsh.client` 四字段：`platform` 只认 `'web'`、`inject` = 组合进 entry + factory 先到、`external` 只管模块表请求、`immediately` 启动期预取。表外依赖（`clsx` 等）require 不到；宿主包 face 全 type 绑定写 `import type`。产物检查保持 `lib/client.js` 里没有 `require("@deepseek-ai/...")`、`__ModuleLoader__.load` 的 id 是包名。
+`require` 三层 = 平台种子表 `PLATFORM_MODULES`（11 项，所有 bundle 共享，require 第一跳命中，与 `dsh.client` 声明无关）→ graph 行（声明 `dsh.client` + `exports["./client"]` 的包；要稳定 require 别的包就列进 `dsh.client.external`，未到达抛 `missed the module table`）→ 包内 `require.async` 局部 chunk。`dsh.client` 四字段：`platform` 只认 `'web'`、`inject` = 包名边（informational），只驱动所列包 factory 的到达/预取顺序，不做 cordis 组合、不提供服务注入；服务注入看 client 入口自己导出的 `inject`（服务名）、`external` 只管模块表请求、`immediately` 启动期预取。表外依赖（`clsx` 等）require 不到；宿主包 face 全 type 绑定写 `import type`。产物检查保持 `lib/client.js` 里没有 `require("@deepseek-ai/...")`、`__ModuleLoader__.load` 的 id 是包名。
 
 ## 坑
 
@@ -173,7 +173,7 @@ body {
 > 根因：宿主 `directory-picker-auto` 在桌面部署（回环 + 无 `trustedHosts`）下 boot 期固定选 native；远端页面被本插件代理当作 owner，native 交互照常注册，但那套交互只服务 Host 的屏幕/桌面 bridge。
 > 正解：本包在 bundle patch 里禁用 `directory-picker` 行（冷启动），并由 Host apply 装载 browse 后端 + 表面（详见「远端创建工作区」）。宿主升级后若行 id 或 browse 包名变化，症状会复发：先 `grep directory-picker packages/bundle/web-app/cordis.patch.yml` 复核行 id，再看 `packages/host/directory-picker-auto/src/index.ts` 的 `BACKEND_PACKAGES`/`SURFACE_PACKAGES`。
 
-> ⚠️ **运行期「禁用 → 启用」报 `service "directoryPicker" has been registered`**
+> ⚠️ **运行期「关→开」报 `service "directoryPicker" has been registered`**
 > 症状：插件管理页点启用，弹出「启用失败：1 entry did not activate remote-web-ui-directory-picker (@deepseek-ai/dsh-host-directory-picker-browse): Error: service "directoryPicker" has been registered at <NativeDirectoryPicker>」。
 > 根因：`setBundleEnabled` 只发布本 bundle 的 insert 行（`bundleRows` 只组合本包 patch），**bundle patch 里针对别家行的 `disabled` 覆盖不会重放**；auto 还在跑，静态 insert 的 browse 后端撞同名服务。
 > 正解：browse 两行不写进 patch，由 `src/host/directory-picker.ts` 在 apply 里「先停 auto 的 fiber，再 create」；patch 只保留 `- id: directory-picker` + `disabled: true` 供冷启动。改动后要重新启用/重启验证。
