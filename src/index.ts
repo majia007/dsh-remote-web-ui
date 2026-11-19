@@ -14,11 +14,41 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { appendFileSync } from 'node:fs'
+import type { IncomingMessage } from 'node:http'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { API_PREFIX, handleApi, writeJson } from './host/api.ts'
 import { installBrowseDirectoryPicker } from './host/directory-picker.ts'
 import { RemoteAccessServer } from './host/server.ts'
+
+/** 宿主准入判定所需的 connection 面（两代入口各自可选，见 ambient.d.ts）。 */
+type AdmissionConnection = {
+  admit?(request: { readonly headers: IncomingMessage['headers'] }): { readonly rejection?: 401 | 403 | 503 }
+  requestRejection?(request: { readonly headers: IncomingMessage['headers'] }): 401 | 403 | undefined
+}
+
+/**
+ * 宿主请求准入：rc.1 起 `admit` 返回 `{ peer }` 或 `{ rejection }`，master 删除
+ * `requestRejection` 后只剩它；极老构建仍只有 `requestRejection`，作为兜底。
+ * @param connection - 宿主 connection 服务。
+ * @param request - 待准入的 HTTP 请求。
+ * @returns 拒绝时返回 401/403/503，放行返回 undefined。
+ */
+function admissionStatus(
+  connection: AdmissionConnection,
+  request: { readonly headers: IncomingMessage['headers'] },
+): 401 | 403 | 503 | undefined {
+  const admission = connection.admit?.(request)
+  if (admission !== undefined) return admission.rejection
+  return connection.requestRejection?.(request)
+}
+
+/** 拒绝状态到响应体错误码的映射。 */
+function rejectionLabel(rejection: 401 | 403 | 503): string {
+  if (rejection === 401) return 'unauthorized'
+  if (rejection === 503) return 'unavailable'
+  return 'forbidden'
+}
 
 /** Diagnostic sink: Host stdout is owned by Electron, so a file is the only observable channel. */
 function log(message: string): void {
@@ -54,11 +84,10 @@ export function apply(ctx: Context): void {
       path: API_PREFIX,
       handler: (request, response) => {
         void (async () => {
-          // Every plugin route must run this fence itself: the Host webServer
-          // adds no authentication of its own.
-          const rejection = scoped.connection.requestRejection(request)
+          // 宿主 webServer 的默认路由认证不替代这条语义判断：每条插件路由仍自己过准入。
+          const rejection = admissionStatus(scoped.connection, request)
           if (rejection !== undefined) {
-            writeJson(response, rejection, { error: rejection === 401 ? 'unauthorized' : 'forbidden' })
+            writeJson(response, rejection, { error: rejectionLabel(rejection) })
             return
           }
           await handleApi(server, request, response, { nativePick: true })

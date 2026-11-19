@@ -56,7 +56,7 @@ pnpm test
 - 安装后即运行期装载，无需重启桌面：`install_bundle` 返回 `application: applied` 后 `apply` 在约 1 秒内跑完——`$DSH_HOME/remote-web-ui.log` 依次 `apply entered` → `services resolved` → `start requested` → `disabled: not listening`，`/remote-web-ui/api` 探到 401，设置页导航出现「远程访问」。冷启动仍以 web-boot 门禁为准。
 - ⚠️ **页面存活期间不会卸载已装载的 client entry**：换包后页面里会同时存在两个设置分区，已装载但 API 前缀失效的那个显示 `读取配置失败：HTTP 404`；桌面重启后消失，不要据此判断新包没生效（按 CSS 类名前缀 `dsrw-` / 是否报 404 区分两个分区）。
 - client bundle 由桌面自带 HMR 在 build 后自动重挂，不要刷新页面。
-- **路由栅栏**：Host 侧 `/remote-web-ui/api` 先过 `ctx.connection.requestRejection`（401/403 直接回，POST 才读 JSON）；插件自己的公开监听器另有一套登录（cookie），两条认证面不要混。
+- **路由栅栏**：Host 侧 `/remote-web-ui/api` 先过 `admissionStatus`（`ctx.connection.admit`，401/403/503 直接回，POST 才读 JSON）。准入统一走 `admit`：rc.1 起就有它，master 删除 `requestRejection` 后只剩它，插件保留兜底分支，因此 `engines.dsh` 最低版本不变；宿主 `webServer` 的路由默认认证不替代这条语义判断。插件自己的公开监听器另有一套登录（cookie），两条认证面不要混。
 
 ## 诊断
 

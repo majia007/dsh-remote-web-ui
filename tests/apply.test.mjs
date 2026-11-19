@@ -24,7 +24,12 @@ const AUTH = { salt: 'salt', hash: 'hash', secret: 'x'.repeat(64), version: 1 }
  * @param {number} port - 监听端口。
  * @returns {Promise<{routes: object[], health: Response | undefined, dispose: () => void}>}
  */
-async function boot(state, port) {
+async function boot(state, port, connection = {
+  admit() { return { peer: {} } },
+  // 新宿主只保留 admit;requestRejection 是 rc.5 及更早的兜底路径,一并保留。
+  requestRejection() { return undefined },
+  authenticatedUrl(p) { return `http://127.0.0.1:${String(p)}/?token=fake` },
+}) {
   const home = mkdtempSync(join(tmpdir(), 'dsrw-apply-'))
   const previous = process.env.DSH_HOME
   process.env.DSH_HOME = home
@@ -46,10 +51,7 @@ async function boot(state, port) {
       protocol: 'http:',
       register(route) { routes.push(route); return () => {} },
     },
-    connection: {
-      requestRejection() { return undefined },
-      authenticatedUrl(p) { return `http://127.0.0.1:${String(p)}/?token=fake` },
-    },
+    connection,
   }
 
   apply(ctx)
@@ -98,6 +100,32 @@ test('开关打开且有密码时 apply 后起监听', async () => {
   try {
     assert.ok(app.health !== undefined, '监听器必须在 apply 后开始监听')
     assert.deepEqual(await app.health.json(), { ok: true, hasPassword: true })
+  } finally {
+    app.dispose()
+  }
+})
+
+test('DSH 设置 API 在宿主准入拒绝时回 401，不进业务处理', async () => {
+  const port = await freePort()
+  const app = await boot({
+    version: 1, enabled: false, hosts: ['127.0.0.1'], port, sessionDays: 30, publicUrl: '', auth: AUTH,
+  }, port, {
+    admit() { return { rejection: 401 } },
+    requestRejection() { return undefined },
+    authenticatedUrl(p) { return `http://127.0.0.1:${String(p)}/?token=fake` },
+  })
+  try {
+    const route = app.routes.find(entry => entry.path === '/remote-web-ui/api')
+    assert.ok(route, '设置 API 路由必须已注册')
+    const response = {
+      statusCode: undefined,
+      body: undefined,
+      writeHead(status) { this.statusCode = status },
+      end(body) { this.body = body },
+    }
+    route.handler({ url: '/remote-web-ui/api/state', method: 'GET', headers: {} }, response)
+    assert.equal(response.statusCode, 401)
+    assert.match(response.body, /unauthorized/)
   } finally {
     app.dispose()
   }

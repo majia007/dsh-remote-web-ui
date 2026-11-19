@@ -22,8 +22,16 @@ declare module '@deepseek-ai/cordis' {
 
   /** Host 侧 connection 服务（packages/client/connection/src/rpc-host.ts 的消费面）。 */
   export interface ConnectionLike {
-    /** Host/Origin 栅栏；undefined 表示放行。 */
-    requestRejection(request: { readonly headers: import('node:http').IncomingMessage['headers'] }): 401 | 403 | undefined
+    /**
+     * 请求准入：rc.1 起返回 `{ peer }` 或 `{ rejection }`（master 把拒绝码扩到 503
+     * 并删除 `requestRejection`），统一走它兼容两代宿主。
+     */
+    admit?(request: { readonly headers: import('node:http').IncomingMessage['headers'] }): {
+      readonly peer?: unknown
+      readonly rejection?: 401 | 403 | 503
+    }
+    /** rc.5 及更早构建的等价入口；新宿主已删除，仅作兜底。 */
+    requestRejection?(request: { readonly headers: import('node:http').IncomingMessage['headers'] }): 401 | 403 | undefined
     /** 给应用 URL 附上本进程启动令牌。 */
     authenticatedUrl(baseUrl: string): string
   }
